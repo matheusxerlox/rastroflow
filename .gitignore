@@ -1,0 +1,22 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente
+.env
+.env.example
+
+# Logs
+logs/
+*.log
+
+# Docker
+docker-data/
+volumes/
+
+# Sistema
+.DS_Store
+
+# Build
+dist/
+build/
+

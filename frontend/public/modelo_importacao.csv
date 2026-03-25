@@ -1,0 +1,4 @@
+transaction_id,product_name,customer_name,customer_document,customer_phone,tracking_code,amount
+TRX-12345,Tênis Esportivo,João Silva,12345678909,11999999999,TX123456789012,199.90
+TRX-12346,Camiseta Básica,Maria Souza,98765432100,21988888888,558414283,59.90
+TRX-12347,Relógio Digital,Carlos Pereira,11122233344,31977777777,888030615091647,299.00

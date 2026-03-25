@@ -1,0 +1,47 @@
+services:
+  backend:
+    build: ./backend
+    container_name: rastroflow_v4_backend
+    env_file: .env
+    ports:
+      - "8000:8000"
+    networks:
+      - icontainer-network
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: rastroflow_v4_frontend
+    ports:
+      - "3000:80"
+    networks:
+      - icontainer-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  celery:
+    build: ./backend
+    container_name: rastroflow_v4_celery
+    command: celery -A app.workers.tasks worker --loglevel=info --pool=solo
+    env_file: .env
+    networks:
+      - icontainer-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  celery-beat:
+    build: ./backend
+    container_name: rastroflow_v4_beat
+    command: celery -A app.workers.tasks beat --loglevel=info
+    env_file: .env
+    networks:
+      - icontainer-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  icontainer-network:
+    external: true
