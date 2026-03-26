@@ -146,7 +146,7 @@ async def cobrar_shipment(shipment_id: UUID, db: AsyncSession = Depends(get_db),
     if not current_user.webhook_cobranca_url:
         raise HTTPException(status_code=400, detail="URL de cobrança não configurada nas Configurações.")
     
-    from app.workers.tasks import disparar_cobranca
+    import httpx
     from datetime import datetime, timezone
     
     stmt = select(Shipment).where(Shipment.id == shipment_id, Shipment.user_id == current_user.id)
@@ -156,14 +156,40 @@ async def cobrar_shipment(shipment_id: UUID, db: AsyncSession = Depends(get_db),
     if not shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
     
-    # Marca imediatamente para o botão atualizar na UI
+    payload = {
+        "event": "cobranca",
+        "tracking_code": shipment.tracking_number,
+        "customer_name": shipment.customer_name,
+        "customer_email": shipment.customer_email,
+        "customer_phone": shipment.customer_phone,
+        "customer_document": shipment.customer_document,
+        "product_name": shipment.product_name,
+        "amount": float(shipment.amount) if shipment.amount else None,
+        "status": shipment.status,
+        "transaction_id": shipment.transaction_id,
+        "triggered_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                current_user.webhook_cobranca_url,
+                json=payload,
+                timeout=10.0,
+                headers={"Content-Type": "application/json"}
+            )
+            resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=502, detail=f"Webhook retornou erro {e.response.status_code}: {e.response.text[:200]}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Falha ao enviar webhook: {str(e)[:200]}")
+    
+    # Marca como cobrado somente após envio confirmado
     shipment.cobrado = True
     shipment.cobrado_em = datetime.now(timezone.utc)
     await db.commit()
     
-    # Dispara o envio HTTP em background via Celery
-    disparar_cobranca.delay(str(shipment.id))
-    return {"message": "Cobrança disparada"}
+    return {"message": "Cobrança enviada com sucesso"}
 
 @router.post("/shipments/{shipment_id}/resetar-cobranca")
 async def resetar_cobranca_shipment(shipment_id: UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
