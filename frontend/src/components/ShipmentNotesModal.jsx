@@ -7,9 +7,7 @@ export default function ShipmentNotesModal({ shipment, onClose, onSave }) {
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
-    let val = e.target.value
-    // Somente letras, numeros, espacos e caracteres acentuados comuns
-    val = val.replace(/[^a-zA-Z0-9 áàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\r\n]/g, '')
+    const val = e.target.value
     if (val.length <= 300) {
       setNotes(val)
     }
@@ -44,7 +42,7 @@ export default function ShipmentNotesModal({ shipment, onClose, onSave }) {
         </div>
 
         <div className="mb-4">
-           <p className="text-sm text-gray-400 mb-2">Escreva observações apenas com letras e números (máximo 300 caracteres).</p>
+           <p className="text-sm text-gray-400 mb-2">Escreva observações sobre esta encomenda (máximo 300 caracteres).</p>
            <textarea 
              className="w-full h-32 bg-gray-800 border-2 border-gray-700 rounded-xl p-3 text-sm text-gray-200 outline-none focus:border-green-500/50 focus:ring-1 focus:ring-green-500 custom-scrollbar resize-none transition-colors"
              placeholder="Digite sua anotação aqui..."

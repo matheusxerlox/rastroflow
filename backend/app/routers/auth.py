@@ -69,6 +69,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
             raise credentials_exception
     if not user.is_active:
         raise HTTPException(status_code=403, detail=f"User inactive. Reason: {user.motivo_bloqueio}")
+    
+    # Verifica expiração do plano
+    if user.plano_expira_em:
+        expira = user.plano_expira_em
+        if expira.tzinfo is None:
+            expira = expira.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expira:
+            raise HTTPException(status_code=403, detail="Plano expirado. Renove sua assinatura para continuar.")
         
     if user.parent_id:
         stmt_parent = select(User).where(User.id == user.parent_id)
@@ -113,6 +121,14 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
         
     if not user.is_active:
         raise HTTPException(status_code=403, detail=f"Conta bloqueada: {user.motivo_bloqueio}")
+    
+    # Verifica expiração do plano no login
+    if user.plano_expira_em:
+        expira = user.plano_expira_em
+        if expira.tzinfo is None:
+            expira = expira.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expira:
+            raise HTTPException(status_code=403, detail="Plano expirado. Renove sua assinatura para continuar.")
         
     if user.parent_id:
         stmt_parent = select(User).where(User.id == user.parent_id)

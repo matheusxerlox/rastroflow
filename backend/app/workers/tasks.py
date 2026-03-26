@@ -23,6 +23,12 @@ def setup_periodic_tasks(sender, **kwargs):
         polling_entregas_proximas.s(),
         name='polling_entregas_proximas'
     )
+    # Verificação diária de planos expirados (todo dia às 01:00 UTC)
+    sender.add_periodic_task(
+        crontab(hour=1, minute=0),
+        verificar_planos_expirados.s(),
+        name='verificar_planos_expirados'
+    )
     # Virada de mês - meia noite de dia 1
     sender.add_periodic_task(
         crontab(hour=0, minute=1, day_of_month=1),
@@ -195,3 +201,31 @@ async def _resetar_quotas_mensais_async():
 @celery_app.task
 def resetar_quotas_mensais():
     asyncio.run(_resetar_quotas_mensais_async())
+
+async def _verificar_planos_expirados_async():
+    from datetime import datetime, timezone
+    async with AsyncSessionLocal() as db:
+        now = datetime.now(timezone.utc)
+        # Busca usuários ativos cujo plano expirou
+        stmt = select(User).where(
+            User.is_active == True,
+            User.plano_expira_em != None,
+            User.plano_expira_em < now,
+            User.is_admin == False  # Nunca bloqueia admin
+        )
+        result = await db.execute(stmt)
+        users = result.scalars().all()
+        
+        bloqueados = 0
+        for u in users:
+            u.is_active = False
+            u.motivo_bloqueio = "plano_expirado"
+            bloqueados += 1
+        
+        if bloqueados > 0:
+            await db.commit()
+            print(f"[verificar_planos_expirados] {bloqueados} usuário(s) bloqueado(s) por plano expirado.")
+
+@celery_app.task
+def verificar_planos_expirados():
+    asyncio.run(_verificar_planos_expirados_async())
