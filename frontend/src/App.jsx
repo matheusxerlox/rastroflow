@@ -19,6 +19,7 @@ import AdminUserDetail from './pages/admin/AdminUserDetail'
 import AdminLogs from './pages/admin/AdminLogs'
 import AdminWebhookLogs from './pages/admin/AdminWebhookLogs'
 import AdminLayout from './pages/admin/AdminLayout'
+import AdminCommunication from './pages/admin/AdminCommunication'
 import Layout from './components/Layout'
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -57,6 +58,7 @@ function App() {
           <Route path="users/:id" element={<AdminUserDetail />} />
           <Route path="logs" element={<AdminLogs />} />
           <Route path="logs/webhooks" element={<AdminWebhookLogs />} />
+          <Route path="comunicacao" element={<AdminCommunication />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" />} />

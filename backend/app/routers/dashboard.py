@@ -3,11 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, null
 from typing import Optional
 from uuid import UUID
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.models.user import User
 from app.models.shipment import Shipment
 from app.models.quota import QuotaUsage
+from app.models.announcement import Announcement, AnnouncementConfirmation
 from app.routers.auth import get_current_user, get_password_hash, verify_password
 from app.services.quota import get_current_month_str, check_quota
 
@@ -297,3 +299,82 @@ async def get_charts(
     ]
     
     return {"line_data": line_data, "pie_data": pie_data}
+
+
+# ─── Comunicados ─────────────────────────────────────────────────────────────
+
+@router.get("/announcement/active")
+async def get_active_announcement(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna o comunicado ativo se o usuário ainda não confirmou na versão atual."""
+    if current_user.is_admin:
+        return None  # Admin nunca vê o modal
+
+    stmt = select(Announcement).where(Announcement.is_active == True).limit(1)
+    result = await db.execute(stmt)
+    ann = result.scalar_one_or_none()
+
+    if not ann or not ann.html_content:
+        return None
+
+    # Verificação de janela de tempo
+    now = datetime.now(timezone.utc)
+    if ann.start_at:
+        start = ann.start_at if ann.start_at.tzinfo else ann.start_at.replace(tzinfo=timezone.utc)
+        if now < start:
+            return None
+    if ann.end_at:
+        end = ann.end_at if ann.end_at.tzinfo else ann.end_at.replace(tzinfo=timezone.utc)
+        if now > end:
+            return None
+
+    # Verificar se o usuário já confirmou esta versão
+    stmt_conf = select(AnnouncementConfirmation).where(
+        AnnouncementConfirmation.announcement_id == ann.id,
+        AnnouncementConfirmation.user_id == current_user.id,
+        AnnouncementConfirmation.version_at == ann.version
+    )
+    already_confirmed = (await db.execute(stmt_conf)).scalar_one_or_none()
+
+    if already_confirmed:
+        return None
+
+    return {
+        "id": str(ann.id),
+        "html_content": ann.html_content,
+        "version": ann.version,
+    }
+
+
+@router.post("/announcement/{announcement_id}/confirm")
+async def confirm_announcement(
+    announcement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Registra que o usuário clicou em 'Li e entendi'."""
+    stmt = select(Announcement).where(Announcement.id == announcement_id)
+    ann = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not ann:
+        raise HTTPException(status_code=404, detail="Comunicado não encontrado")
+
+    # Evitar duplicidade
+    stmt_check = select(AnnouncementConfirmation).where(
+        AnnouncementConfirmation.announcement_id == ann.id,
+        AnnouncementConfirmation.user_id == current_user.id,
+        AnnouncementConfirmation.version_at == ann.version
+    )
+    if (await db.execute(stmt_check)).scalar_one_or_none():
+        return {"message": "Já confirmado"}
+
+    confirmation = AnnouncementConfirmation(
+        announcement_id=ann.id,
+        user_id=current_user.id,
+        version_at=ann.version
+    )
+    db.add(confirmation)
+    await db.commit()
+    return {"message": "Confirmado com sucesso"}

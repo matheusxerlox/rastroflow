@@ -18,8 +18,9 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
+    # Importa modelos para garantir que create_all os encontre
+    from app.models import user, shipment, quota, admin_log, webhook_log, password_reset, announcement  # noqa
     async with engine.begin() as conn:
-        # Cria as tabelas caso não existam (útil para desenvolvimento inicial)
         await conn.run_sync(Base.metadata.create_all)
 
 from app.routers.auth import router as auth_router
@@ -29,6 +30,7 @@ from app.routers.webhook_keedpay import router as keedpay_router
 from app.routers.webhook_17track import router as track17_router
 from app.routers.webhook_cakto import router as cakto_router
 from app.routers.admin import router as admin_router
+from app.routers.announcement import router as announcement_router
 
 app.include_router(auth_router)
 app.include_router(dashboard_router)
@@ -37,6 +39,7 @@ app.include_router(keedpay_router)
 app.include_router(track17_router)
 app.include_router(cakto_router)
 app.include_router(admin_router)
+app.include_router(announcement_router)
 
 @app.get("/")
 async def root():

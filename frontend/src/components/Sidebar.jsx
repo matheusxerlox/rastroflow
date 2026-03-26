@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, PackageSearch, Settings, LogOut, Users, ShieldAlert, Network, X, Archive } from 'lucide-react'
+import { LayoutDashboard, PackageSearch, Settings, LogOut, Users, ShieldAlert, Network, X, Archive, Megaphone } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -18,6 +18,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { name: 'Usuários', path: '/admin/users', icon: Users },
     { name: 'Logs do Sistema', path: '/admin/logs', icon: Settings },
     { name: 'Logs de Webhooks', path: '/admin/logs/webhooks', icon: Network },
+    { name: 'Comunicação', path: '/admin/comunicacao', icon: Megaphone },
   ]
 
   return (
