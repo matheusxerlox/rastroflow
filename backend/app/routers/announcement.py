@@ -33,6 +33,27 @@ async def _get_or_create_announcement(db: AsyncSession) -> Announcement:
     return ann
 
 
+@router.get("/public")
+async def get_announcement_public(db: AsyncSession = Depends(get_db)):
+    """Endpoint público — não exige autenticação. Retorna anúncio ativo se existir."""
+    stmt = select(Announcement).where(Announcement.is_active == True).limit(1)
+    ann = (await db.execute(stmt)).scalar_one_or_none()
+    if not ann or not ann.html_content:
+        return None
+
+    now = datetime.now(timezone.utc)
+    if ann.start_at:
+        start = ann.start_at if ann.start_at.tzinfo else ann.start_at.replace(tzinfo=timezone.utc)
+        if now < start:
+            return None
+    if ann.end_at:
+        end = ann.end_at if ann.end_at.tzinfo else ann.end_at.replace(tzinfo=timezone.utc)
+        if now > end:
+            return None
+
+    return {"id": str(ann.id), "html_content": ann.html_content, "version": ann.version}
+
+
 @router.get("")
 async def get_announcement(db: AsyncSession = Depends(get_db), _=Depends(get_current_admin)):
     ann = await _get_or_create_announcement(db)

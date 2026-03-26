@@ -3,7 +3,6 @@ import Sidebar from './Sidebar'
 import { useAuth } from '../context/AuthContext'
 import { useState } from 'react'
 import { Menu } from 'lucide-react'
-import AnnouncementModal from './AnnouncementModal'
 
 const Layout = () => {
   const { user } = useAuth()
@@ -34,9 +33,6 @@ const Layout = () => {
           </main>
         </div>
       </div>
-
-      {/* Modal de comunicados — aparece apenas para usuários não-admin */}
-      {user && !user.is_admin && <AnnouncementModal />}
     </div>
   )
 }

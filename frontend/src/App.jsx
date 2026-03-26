@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import AnnouncementModal from './components/AnnouncementModal'
 
 // Public Pages
 import Login from './pages/Login'
@@ -32,9 +33,12 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   return children
 }
 
-function App() {
+// Componente interno que tem acesso ao contexto de auth
+function AppInner() {
+  const { user } = useAuth()
+
   return (
-    <Router>
+    <>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -63,6 +67,17 @@ function App() {
 
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
+
+      {/* Modal global — aparece em TODAS as telas para não-admins, logados ou não */}
+      <AnnouncementModal user={user} />
+    </>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <AppInner />
     </Router>
   )
 }
