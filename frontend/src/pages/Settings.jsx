@@ -7,6 +7,8 @@ export default function Settings() {
   const { user } = useAuth()
   const [webhookUrl, setWebhookUrl] = useState('')
   const [cobrancaUrl, setCobrancaUrl] = useState('')
+  const [cobrancaSalva, setCobrancaSalva] = useState('')
+  const [cobrancaMsg, setCobrancaMsg] = useState('')
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' })
   
   useEffect(() => {
@@ -15,12 +17,14 @@ export default function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const res = await api.get('/settings/webhook-url')
-      setWebhookUrl(res.data.webhook_url)
-      
-      // We don't have a GET for cobranca URL specifically, let's just leave it empty or fetch from user 
-      // Actually /auth/login returns user. In a real scenario we could have a /settings/profile
-      // For now, it will start empty.
+      const [resWebhook, resCobranca] = await Promise.all([
+        api.get('/settings/webhook-url'),
+        api.get('/settings/webhook-cobranca'),
+      ])
+      setWebhookUrl(resWebhook.data.webhook_url)
+      const urlSalva = resCobranca.data.url || ''
+      setCobrancaUrl(urlSalva)
+      setCobrancaSalva(urlSalva)
     } catch (err) {
       console.error(err)
     }
@@ -45,9 +49,23 @@ export default function Settings() {
     e.preventDefault()
     try {
       await api.put('/settings/webhook-cobranca', { url: cobrancaUrl })
-      alert("URL de cobrança salva com sucesso!")
+      setCobrancaSalva(cobrancaUrl)
+      setCobrancaMsg('✅ URL salva com sucesso!')
+      setTimeout(() => setCobrancaMsg(''), 4000)
     } catch (err) {
-      alert("Erro ao salvar URL")
+      setCobrancaMsg('❌ Erro ao salvar URL')
+    }
+  }
+
+  const handleLimparCobranca = async () => {
+    try {
+      await api.put('/settings/webhook-cobranca', { url: '' })
+      setCobrancaUrl('')
+      setCobrancaSalva('')
+      setCobrancaMsg('🗑️ URL removida.')
+      setTimeout(() => setCobrancaMsg(''), 3000)
+    } catch (err) {
+      setCobrancaMsg('❌ Erro ao remover URL')
     }
   }
 
@@ -123,21 +141,34 @@ export default function Settings() {
              <Link2 className="text-emerald-500"/> Webhook de Cobrança
            </h2>
            <p className="text-gray-400 text-sm mb-5">
-             Cole aqui a URL (por exemplo, Make/Integromat ou n8n) para onde o RastroFlow enviará os dados  quando você clicar no botão <b>[Cobrar]</b> de uma encomenda.
+             Cole aqui a URL (por exemplo, Make/Integromat ou n8n) para onde o RastroFlow enviará os dados quando você clicar no botão <b>[Cobrar]</b> de uma encomenda.
            </p>
            
-           <form onSubmit={handleSaveCobrancaUrl} className="flex flex-col sm:flex-row gap-3">
-             <input 
-                type="url"
-                required
-                placeholder="https://sua-url-de-automacao.com/webhook/..."
-                value={cobrancaUrl}
-                onChange={e => setCobrancaUrl(e.target.value)}
-                className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all placeholder-gray-600"
-             />
-             <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
-               <Save size={18}/> Salvar URL
-             </button>
+           <form onSubmit={handleSaveCobrancaUrl} className="flex flex-col gap-3">
+             <div className="flex flex-col sm:flex-row gap-3">
+               <input 
+                  type="url"
+                  required
+                  placeholder="https://sua-url-de-automacao.com/webhook/..."
+                  value={cobrancaUrl}
+                  onChange={e => setCobrancaUrl(e.target.value)}
+                  className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all placeholder-gray-600"
+               />
+               <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
+                 <Save size={18}/> Salvar URL
+               </button>
+             </div>
+             {cobrancaMsg && (
+               <p className="text-sm font-medium text-emerald-400">{cobrancaMsg}</p>
+             )}
+             {cobrancaSalva && (
+               <div className="flex items-center justify-between bg-gray-900/60 border border-gray-700 rounded-xl px-4 py-2.5 mt-1">
+                 <span className="text-xs text-gray-400 truncate mr-3">✅ Ativo: <code className="text-emerald-400">{cobrancaSalva}</code></span>
+                 <button type="button" onClick={handleLimparCobranca} className="text-xs text-red-400 hover:text-red-300 flex-shrink-0 transition-colors">
+                   Remover
+                 </button>
+               </div>
+             )}
            </form>
         </div>
 

@@ -16,4 +16,24 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status
+    const detail = error?.response?.data?.detail || ''
+
+    // Se o backend retornar 401 (token inválido) ou 403 de plano/bloqueio → desloga
+    if (status === 401 || (status === 403 && !detail.includes('privileges'))) {
+      localStorage.removeItem('rastroflow_token')
+      localStorage.removeItem('rastroflow_user')
+      // Redireciona para login. Se já estiver lá, não faz nada.
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login'
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
+
 export default api
