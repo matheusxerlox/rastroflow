@@ -354,18 +354,12 @@ export default function AdminCommunication() {
               dangerouslySetInnerHTML={{ __html: testAnnouncement.html_content }}
               style={{ minHeight: '100px' }}
             />
-            <div className="px-6 py-4 border-t border-gray-700 bg-gray-800/80 flex-shrink-0 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="px-6 py-4 border-t border-gray-700 bg-gray-800/80 flex-shrink-0 flex items-center justify-center">
               <button
                 onClick={handleTestConfirm}
                 className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:from-green-400 hover:to-emerald-500 transition-all text-sm"
               >
                 ✅ Li e entendi
-              </button>
-              <button
-                onClick={() => { setTestMode(false); setTestAnnouncement(null) }}
-                className="text-sm text-gray-400 hover:text-gray-200 transition-colors"
-              >
-                Fechar sem confirmar
               </button>
             </div>
           </div>

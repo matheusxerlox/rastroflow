@@ -25,31 +25,31 @@ export default function AnnouncementModal({ user }) {
 
   const fetchAnnouncement = useCallback(async () => {
     try {
+      // Busca o comunicado ativo sem autenticação (endpoint público)
       const res = await api.get('/admin/announcement/public')
       const data = res.data
 
-      // Nenhum comunicado ativo
+      // Nenhum comunicado ativo ou desativado
       if (!data || !data.id) {
         setAnnouncement(null)
         return
       }
 
-      // Admin não vê o modal
+      // Admin nunca vê o modal
       if (user?.is_admin) {
         setAnnouncement(null)
         return
       }
 
-      // Verificar se o usuário já confirmou
       if (user) {
-        // Usuário logado: verificar via API
+        // Usuário logado: verificar se já confirmou via API (que checa version + db)
         try {
           const res2 = await api.get('/dashboard/announcement/active')
           if (!res2.data || !res2.data.id) {
             setAnnouncement(null)
-            return
+          } else {
+            setAnnouncement(res2.data)
           }
-          setAnnouncement(res2.data)
         } catch {
           setAnnouncement(null)
         }
@@ -62,14 +62,13 @@ export default function AnnouncementModal({ user }) {
         }
       }
     } catch {
-      // Se falhar, não bloqueia o usuário
       setAnnouncement(null)
     }
   }, [user])
 
   useEffect(() => {
     fetchAnnouncement()
-    // Polling a cada 30 segundos para capturar ativação/desativação em tempo real
+    // Polling a cada 30 segundos — captura ativação/desativação em tempo real
     intervalRef.current = setInterval(fetchAnnouncement, 30000)
     return () => clearInterval(intervalRef.current)
   }, [fetchAnnouncement])
@@ -85,7 +84,6 @@ export default function AnnouncementModal({ user }) {
       }
       setAnnouncement(null)
     } catch {
-      // Fecha mesmo assim para não travar o usuário
       setAnnouncement(null)
     } finally {
       setConfirming(false)
@@ -99,9 +97,21 @@ export default function AnnouncementModal({ user }) {
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(4px)' }}
     >
+      {/*
+        Modal adaptativo:
+        - Largura: até 70% da tela (min 320px)
+        - Altura: até 80% da tela
+        - O conteúdo define o tamanho dentro desses limites
+      */}
       <div
-        className="relative w-full bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-        style={{ maxWidth: '640px', maxHeight: '82vh', animation: 'fadeInScale 0.25s ease' }}
+        className="relative bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        style={{
+          width: '100%',
+          maxWidth: 'min(70vw, 720px)',
+          minWidth: '320px',
+          maxHeight: '80vh',
+          animation: 'fadeInScale 0.25s ease',
+        }}
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-700 bg-gray-800/80 flex-shrink-0">
@@ -114,14 +124,14 @@ export default function AnnouncementModal({ user }) {
           </div>
         </div>
 
-        {/* Conteúdo HTML renderizado */}
+        {/* Conteúdo HTML renderizado com scroll se necessário */}
         <div
           className="flex-1 overflow-y-auto p-6"
           dangerouslySetInnerHTML={{ __html: announcement.html_content }}
-          style={{ minHeight: '100px' }}
+          style={{ minHeight: '80px' }}
         />
 
-        {/* Footer */}
+        {/* Footer — só "Li e entendi", sem opção de fechar */}
         <div className="px-6 py-4 border-t border-gray-700 bg-gray-800/80 flex-shrink-0 flex justify-center">
           <button
             onClick={handleConfirm}

@@ -89,10 +89,11 @@ async def save_announcement(
 
     if req.html_content is not None:
         ann.html_content = req.html_content
-    if req.start_at is not None:
-        ann.start_at = req.start_at
-    if req.end_at is not None:
-        ann.end_at = req.end_at
+
+    # Sempre atualiza as datas — None significa "sem restrição de período"
+    # Assim o admin pode limpar as datas enviando null/vazio
+    ann.start_at = req.start_at  # None = exibir assim que ativo, sem data de início
+    ann.end_at = req.end_at      # None = exibir indefinidamente enquanto ativo
 
     # Se o conteúdo mudou → incrementa versão (e as confirmações antigas ficam obsoletas)
     if content_changed:
