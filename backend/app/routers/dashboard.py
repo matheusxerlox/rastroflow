@@ -147,6 +147,7 @@ async def cobrar_shipment(shipment_id: UUID, db: AsyncSession = Depends(get_db),
         raise HTTPException(status_code=400, detail="URL de cobrança não configurada nas Configurações.")
     
     from app.workers.tasks import disparar_cobranca
+    from datetime import datetime, timezone
     
     stmt = select(Shipment).where(Shipment.id == shipment_id, Shipment.user_id == current_user.id)
     result = await db.execute(stmt)
@@ -155,7 +156,12 @@ async def cobrar_shipment(shipment_id: UUID, db: AsyncSession = Depends(get_db),
     if not shipment:
         raise HTTPException(status_code=404, detail="Shipment not found")
     
-    # Dispara a task — ela marca cobrado=True APÓS confirmar o envio HTTP
+    # Marca imediatamente para o botão atualizar na UI
+    shipment.cobrado = True
+    shipment.cobrado_em = datetime.now(timezone.utc)
+    await db.commit()
+    
+    # Dispara o envio HTTP em background via Celery
     disparar_cobranca.delay(str(shipment.id))
     return {"message": "Cobrança disparada"}
 

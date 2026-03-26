@@ -94,12 +94,14 @@ def registrar_lote_17track(shipment_ids: list):
             time.sleep(0.4) # Limite de 3 req/seg
 
 async def _disparar_cobranca_async(shipment_id: str):
+    import uuid as _uuid
+    shipment_uuid = _uuid.UUID(shipment_id) if isinstance(shipment_id, str) else shipment_id
     async with AsyncSessionLocal() as db:
-        stmt = select(Shipment).options(selectinload(Shipment.user)).where(Shipment.id == shipment_id)
+        stmt = select(Shipment).options(selectinload(Shipment.user)).where(Shipment.id == shipment_uuid)
         result = await db.execute(stmt)
         shipment = result.scalar_one_or_none()
         
-        if not shipment or not shipment.user.webhook_cobranca_url:
+        if not shipment or not shipment.user or not shipment.user.webhook_cobranca_url:
             return
             
         payload = {
@@ -118,13 +120,9 @@ async def _disparar_cobranca_async(shipment_id: str):
         
         try:
             async with httpx.AsyncClient() as client:
-                await client.post(shipment.user.webhook_cobranca_url, json=payload, timeout=5.0)
-                
-            shipment.cobrado = True
-            shipment.cobrado_em = datetime.now(timezone.utc)
-            await db.commit()
+                await client.post(shipment.user.webhook_cobranca_url, json=payload, timeout=10.0)
         except Exception as e:
-            print(f"Erro ao disparar cobranca do shipment {shipment_id}: {e}")
+            print(f"[disparar_cobranca] Erro ao enviar webhook para shipment {shipment_id}: {e}")
 
 @celery_app.task
 def disparar_cobranca(shipment_id: str):
