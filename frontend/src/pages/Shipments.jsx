@@ -223,7 +223,7 @@ export default function Shipments() {
               <tr>
                 <th className="px-6 py-4 font-semibold">Data Atualização</th>
                 <th className="px-6 py-4 font-semibold">Cliente / Produto</th>
-                <th className="px-6 py-4 font-semibold">Rastreio</th>
+                <th className="px-6 py-4 font-semibold">Rastreio / Id</th>
                 <th className="px-6 py-4 font-semibold hidden md:table-cell">Transportadora</th>
                 <th className="px-6 py-4 font-semibold">Valor</th>
                 <th className="px-6 py-4 font-semibold">Status</th>
@@ -250,10 +250,24 @@ export default function Shipments() {
                     <td className="px-6 py-4">
                       <div className="font-mono text-green-400 flex items-center gap-2">
                         {s.tracking_number}
-                        <button onClick={() => navigator.clipboard.writeText(s.tracking_number)} title="Copiar">
+                        <button onClick={() => navigator.clipboard.writeText(s.tracking_number)} title="Copiar rastreio">
                           <Copy size={12} className="text-gray-500 hover:text-green-400 cursor-pointer" />
                         </button>
                       </div>
+                      {s.transaction_id && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-xs text-gray-500 font-mono truncate max-w-[160px]" title={s.transaction_id}>
+                            ID: {s.transaction_id}
+                          </span>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(s.transaction_id)}
+                            title="Copiar ID Transação"
+                            className="flex-shrink-0"
+                          >
+                            <Copy size={11} className="text-gray-600 hover:text-gray-300 cursor-pointer" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 hidden md:table-cell capitalize">
                       {s.carrier === 'jtexpress-br' ? 'J&T' : s.carrier}
