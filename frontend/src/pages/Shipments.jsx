@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Search, Filter, MoreHorizontal, Copy, RefreshCw, Check, FileText, StickyNote, Archive } from 'lucide-react'
+import { Search, Filter, MoreHorizontal, Copy, RefreshCw, Check, FileText, StickyNote, Archive, CreditCard } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
 import ShipmentDetailModal from '../components/ShipmentDetailModal'
 import ShipmentNotesModal from '../components/ShipmentNotesModal'
@@ -23,6 +23,7 @@ export default function Shipments() {
   
   // Para controlar UI do botão de dropdown
   const [openDropdown, setOpenDropdown] = useState(null)
+  const [cpfCopiado, setCpfCopiado] = useState(null) // id do shipment com CPF copiado
 
   const fetchShipments = async () => {
     setLoading(true)
@@ -95,6 +96,17 @@ export default function Shipments() {
     } catch (err) {
       alert('Erro ao resetar cobrança')
     }
+  }
+
+  const handleGerarPagamento = (s) => {
+    setOpenDropdown(null)
+    // Remove formatação do CPF/CNPJ (pontos, traços, barras) antes de passar na URL
+    const doc = (s.customer_document || '').replace(/\D/g, '')
+    const url = doc
+      ? `https://app.keedpay.com.br/cobranca?document=${doc}`
+      : 'https://app.keedpay.com.br/cobranca'
+    // A Keedpay lê o parâmetro ?document= e preenche o campo CPF/CNPJ automaticamente
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const handleToggleArchive = async (id) => {
@@ -327,6 +339,15 @@ export default function Shipments() {
                                 className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700/50 flex items-center gap-2 transition-colors"
                               >
                                 <StickyNote size={16} className="text-yellow-500" /> Anotações
+                              </button>
+                              <button
+                                onClick={() => handleGerarPagamento(s)}
+                                className="w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-2 hover:bg-gray-700/50 relative"
+                              >
+                                <CreditCard size={16} className="text-green-400" />
+                                <span className={cpfCopiado === s.id ? 'text-green-400 font-semibold' : 'text-gray-200'}>
+                                  {cpfCopiado === s.id ? '✅ CPF copiado! Cole na Keedpay' : 'Gerar pagamento'}
+                                </span>
                               </button>
                               
                               {s.status === 'Delivered' && (
